@@ -7,13 +7,14 @@ import { randomInt } from 'crypto';
 import { dir, time } from 'console';
 import { path } from 'src/utils';
 import { PasteSettingsTab } from './settings';
+import {MD5} from 'crypto-js';
 // import * as path from 'path';
 // Remember to rename these classes and interfaces!
 // const PASTED_IMAGE_PREFIX = 'Pasted image '
 // interface ImageCPPluginSettings {
 // 	mySetting: string;
 // }
-const reg1: RegExp = /!\[\[(.*?)\]\]/
+const reg1 = /!\[\[(.*?)\]\]/
 /*
 ------------- Cmd + Opt+ I on macOS or Ctrl + Shift + I on Windows or Linux.
 */
@@ -80,7 +81,11 @@ type InsertText = {
 	dst: string;
 }
 
-
+const now = new Date();
+const year = now.getFullYear().toString();
+// eslint-disable-next-line no-case-declarations
+const month = (now.getMonth() + 1).toString().padStart(2, '0');
+const day = now.getDate().toString().padStart(2, '0');
 
 export default class ImageCPPlugin extends Plugin {
 	writeOptions(arg0: string) {
@@ -150,7 +155,7 @@ export default class ImageCPPlugin extends Plugin {
 						this.pasteOneImage2MDDir(this.imageNameList[0], file)
 					}
 					else if (this.imageNameList.length >= 1 && this.imageNameList[this.imageIndex].type != "nai") { // copy file
-						let image = this.imageNameList[this.imageIndex]
+						const image = this.imageNameList[this.imageIndex]
 						// console.log("filenames:::", image)
 						this.pasteMultipleImage2MDDir(image, file)
 						this.imageIndex++
@@ -227,7 +232,8 @@ export default class ImageCPPlugin extends Plugin {
 				// // }
 				// break;
 			default:
-				dirPath = mdFile.parent?.path ? path.join(mdFile.parent!.path, mdFile.basename) : mdFile.basename;
+				dirPath = path.join("/ObsidianImages",year,month,day);
+				// dirPath = mdFile.parent?.path ? path.join(mdFile.parent!.path, mdFile.basename) : mdFile.basename;
 		}
 		console.log(mdFile.parent?.path, mdFile.basename, dirPath)
 		// const dirPath1 = mdFile.parent?.path ? path.join(mdFile.parent!.path, mdFile.basename) : mdFile.basename
@@ -237,6 +243,8 @@ export default class ImageCPPlugin extends Plugin {
 			console.log("not exist, will create")
 			await this.app.vault.createFolder(dirPath)
 		}
+		const hash = MD5(filename).toString();
+		filename = hash + "." + filename.split(".").last();
 
 		let newImagePath = path.join(dirPath, filename);
 		let newFilename = filename
@@ -369,7 +377,7 @@ export default class ImageCPPlugin extends Plugin {
 			// editor.replaceRange(this.insertTextList.map(e=>e.dst).join("\n"), editor.getCursor())
 			const lastStartInsertLine = cursor.line - (this.imageNameList.length - 1) * 2
 			const lastStartInsertLineContent = editor.getLine(lastStartInsertLine)
-			var sp = { line: 0, ch: 0 };
+			let sp = { line: 0, ch: 0 };
 			// console.log("--", this.insertTextList)
 			if (this.insertTextList.length != 0) {
 				// 复制了多个图片
@@ -451,7 +459,7 @@ export default class ImageCPPlugin extends Plugin {
 			// 粘贴一个网络图片
 			const items = evt.clipboardData?.items
 			if (items?.length == 2 && items![1].kind == "file" && items![1].type.startsWith("image/")) {
-				let extension = items![1].type.split("/")[1]
+				const extension = items![1].type.split("/")[1]
 				// console.log(extension, items![1].type)
 				items[0].getAsString(s => {
 					// console.log("raw image name", s)
@@ -492,9 +500,9 @@ export default class ImageCPPlugin extends Plugin {
 		} else if (t_types?.length == 1 && t_types[0] === "Files") {
 			if (!evt.clipboardData?.files) return // 
 			const files = evt.clipboardData!.files;
-			for (var i = 0; i < files.length; i += 1) {
+			for (let i = 0; i < files.length; i += 1) {
 				if (files[i].type.startsWith("image/") && files[i].name.length > 0) {
-					let extension = files[i].type.split("/")[1]
+					const extension = files[i].type.split("/")[1]
 					this.imageNameList.push({
 						type: 'local',
 						filename: files[i].name === "image.png" ? "image-" + getFormatNow() + "." + extension : files[i].name
